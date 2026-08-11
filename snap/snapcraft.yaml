@@ -163,6 +163,20 @@ parts:
           ! -name "*linux-${NODE_ARCH}.node" -delete
       fi
 
+      # Generate the CA bundle that the wrapper points NODE_EXTRA_CA_CERTS at.
+      # stage-packages unpacks ca-certificates but never runs its postinst, and
+      # /etc/ssl/certs/ca-certificates.crt is produced by update-ca-certificates
+      # at configure time -- so without this the individual mozilla/*.crt files
+      # ship but the bundle does not exist. Node then logs "Ignoring extra certs
+      # ... load failed: No such file or directory" on every start and silently
+      # falls back to its built-in CA store, making the staged certificates dead
+      # weight. Concatenating the PEMs produces the same bundle the postinst
+      # would have.
+      mkdir -p "${INSTALL}/etc/ssl/certs"
+      cat "${INSTALL}"/usr/share/ca-certificates/mozilla/*.crt \
+        > "${INSTALL}/etc/ssl/certs/ca-certificates.crt"
+      test -s "${INSTALL}/etc/ssl/certs/ca-certificates.crt"
+
       # 9. Classic packaging cruft from stage-packages (keep 'copyright').
       rm -rf "${INSTALL}/usr/share/man" \
              "${INSTALL}/usr/share/lintian" \
