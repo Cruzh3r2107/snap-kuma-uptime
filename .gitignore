@@ -1,0 +1,31 @@
+# This is a snap PACKAGING repo. snapcraft.yaml builds Uptime Kuma from
+# upstream git at a pinned tag (source-tag: 2.5.0), so no upstream source
+# belongs in here -- only the packaging that wraps it.
+#
+# A full upstream working copy was previously checked out into this directory
+# so the analyzer could scan it. That tree is not needed to build and must not
+# be committed: it would drag in ~800 files, upstream's own .github/ workflows
+# (which would then run as Actions on THIS repo), upstream's CLAUDE.md and
+# AGENTS.md, and a 56 MB .snap.
+#
+# Strategy: ignore everything, then re-include only the packaging files. An
+# allowlist is used deliberately -- the upstream .gitignore that used to live
+# here does not ignore *.snap.
+
+/*
+/.*
+
+!/.gitignore
+!/README.md
+!/snap/
+!/SNAP_PACKAGING.md
+
+# Build artefacts stay ignored even though snap/ is re-included above.
+*.snap
+parts/
+stage/
+prime/
+
+# Machine-generated validation output; the durable findings live in
+# SNAP_PACKAGING.md instead.
+snap-validation-results.json

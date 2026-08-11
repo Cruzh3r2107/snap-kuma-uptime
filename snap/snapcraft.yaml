@@ -1,0 +1,187 @@
+name: vsingh-uptime-kuma
+base: core24
+version: '2.5.0'
+title: Uptime Kuma
+summary: A fancy self-hosted monitoring tool
+description: |
+  Uptime Kuma is a self-hosted monitoring tool similar to Uptime Robot.
+  It provides a web UI (Vue 3 frontend) served by a Node.js backend
+  (Express + Socket.io) to monitor the uptime of HTTP(s), TCP, ping, DNS,
+  gRPC, MQTT, database and many other endpoints, with notifications,
+  status pages and retention of historical data.
+
+  By default it stores its data in an embedded SQLite database
+  (@louislam/sqlite3 native module) but can also connect to external
+  MariaDB/MySQL, PostgreSQL, MSSQL, MongoDB or Redis instances via knex.
+  The web UI and API listen on port 3001 by default.
+
+  The data directory is set to $SNAP_COMMON, so the SQLite database,
+  uploads, screenshots and logs persist across snap refreshes.
+
+license: MIT
+grade: stable
+confinement: strict
+
+apps:
+  vsingh-uptime-kuma:
+    command: bin/uptime-kuma-wrapper
+    daemon: simple
+    restart-condition: always
+    plugs:
+      - network
+      - network-bind
+      # network-control is declared here so it can be manually connected
+      # (auto_connected: false) for ICMP ping-type monitors if needed.
+      - network-control
+    environment:
+      NODE_ENV: production
+      DATA_DIR: $SNAP_COMMON/
+      UPTIME_KUMA_PORT: "3001"
+
+parts:
+  uptime-kuma:
+    plugin: nil
+    # Pinned upstream tag, not a local tree. Building from `source: .` meant the
+    # snap was built from whatever the working copy happened to be checked out
+    # at -- which was origin/master, several commits past the 2.5.0 release,
+    # while still being labelled version 2.5.0. A tag makes the build
+    # reproducible and makes the version string true.
+    source: https://github.com/louislam/uptime-kuma.git
+    source-type: git
+    source-tag: '2.5.0'
+    source-depth: 1
+    build-packages:
+      - build-essential
+      - python3
+      - libatomic1
+      - curl
+      - ca-certificates
+    stage-packages:
+      - ca-certificates
+      - iputils-ping
+      - libatomic1
+    override-build: |
+      craftctl default
+
+      set -eu
+
+      NODE_VERSION="20.19.4"
+
+      # Map the Debian build architecture to the Node.js release architecture.
+      case "${CRAFT_ARCH_BUILD_FOR}" in
+        amd64) NODE_ARCH="x64" ;;
+        arm64) NODE_ARCH="arm64" ;;
+        armhf) NODE_ARCH="armv7l" ;;
+        ppc64el) NODE_ARCH="ppc64le" ;;
+        s390x) NODE_ARCH="s390x" ;;
+        *) echo "Unsupported architecture: ${CRAFT_ARCH_BUILD_FOR}" >&2; exit 1 ;;
+      esac
+
+      # Provision the pinned Node.js runtime (>= 20.4.0 required by the app).
+      NODE_TARBALL="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz"
+      NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}"
+      NODE_DIST="${CRAFT_PART_BUILD}/node-dist"
+      mkdir -p "${NODE_DIST}"
+      curl -fsSL "${NODE_URL}" | tar -xz --strip-components=1 -C "${NODE_DIST}"
+      export PATH="${NODE_DIST}/bin:${PATH}"
+      node --version
+      npm --version
+
+      # Build in the source tree.
+      cd "${CRAFT_PART_SRC}"
+
+      # Full install (incl. dev deps such as vite) so the frontend can be built.
+      # This also compiles the native @louislam/sqlite3 addon via node-gyp.
+      npm ci --no-audit --no-fund
+
+      # Build the Vue 3 frontend -> ./dist
+      npm run build
+
+      # Drop dev dependencies, keeping only the production runtime tree
+      # (native sqlite3 build is preserved by prune).
+      npm prune --omit=dev --no-audit --no-fund
+
+      # Stage the runtime tree into the snap.
+      INSTALL="${CRAFT_PART_INSTALL}"
+      mkdir -p "${INSTALL}/bin"
+
+      # Bundle the Node.js runtime binary.
+      install -Dm755 "${NODE_DIST}/bin/node" "${INSTALL}/bin/node"
+
+      # Copy the application runtime files.
+      cp -r server "${INSTALL}/server"
+      cp -r dist "${INSTALL}/dist"
+      cp -r db "${INSTALL}/db"
+      cp -r node_modules "${INSTALL}/node_modules"
+      cp package.json "${INSTALL}/package.json"
+      # extra/ holds a couple of runtime helpers referenced by the server.
+      cp -r extra "${INSTALL}/extra"
+      # src/ contains shared code the backend requires at runtime, e.g.
+      # server/server.js does require("../src/util"). Without it the daemon
+      # crashes on startup with "Cannot find module '../src/util'".
+      cp -r src "${INSTALL}/src"
+
+      # ---------------------------------------------------------------------
+      # Trim the staged runtime tree to shrink the snap. Everything removed
+      # here is either tooling-only, build scratch, or shipped for other
+      # OS/arch combinations — none of it is loaded by `node server/server.js`
+      # at runtime under NODE_ENV=production. License/NOTICE files are always
+      # preserved (Snap Store license-compliance requirement).
+      NM="${INSTALL}/node_modules"
+
+      # 1. Source maps: only consumed by debuggers, never at runtime.
+      find "${NM}" -type f -name '*.map' -delete
+
+      # 2. TypeScript declaration files: IDE/tooling only.
+      find "${NM}" -type f -name '*.d.ts' -delete
+
+      # 3. TypeScript sources: node executes the compiled .js, not .ts.
+      find "${NM}" -type f -name '*.ts' -delete
+
+      # 4. Markdown docs, but NEVER license/notice files.
+      find "${NM}" -type f -iname '*.md' \
+        -not -iname 'license*'   -not -iname 'licence*' \
+        -not -iname 'copying*'   -not -iname 'copyright*' \
+        -not -iname 'notice*'    -not -iname 'unlicense*' \
+        -delete
+
+      # 5. Test suites bundled inside dependencies.
+      find "${NM}" -type d \( -name test -o -name tests -o -name __tests__ \) \
+        -prune -exec rm -rf {} +
+
+      # 6. Example directories bundled inside dependencies.
+      find "${NM}" -type d \( -iname example -o -iname examples \) \
+        -prune -exec rm -rf {} +
+
+      # 7. SQLite build sources: the native addon is already compiled.
+      rm -rf "${NM}/@louislam/sqlite3/deps"
+
+      # 8. oracledb prebuilt binaries for other OS/arch. Keep only the
+      #    linux binary matching this build's Node arch (NODE_ARCH set above).
+      if [ -d "${NM}/oracledb/build/Release" ]; then
+        find "${NM}/oracledb/build/Release" -type f -name '*.node' \
+          ! -name "*linux-${NODE_ARCH}.node" -delete
+      fi
+
+      # 9. Classic packaging cruft from stage-packages (keep 'copyright').
+      rm -rf "${INSTALL}/usr/share/man" \
+             "${INSTALL}/usr/share/lintian" \
+             "${INSTALL}/usr/share/bug"
+      if [ -d "${INSTALL}/usr/share/doc" ]; then
+        find "${INSTALL}/usr/share/doc" -type f -not -name 'copyright' -delete
+      fi
+      find "${INSTALL}" -type d -name '__pycache__' -prune -exec rm -rf {} +
+      # ---------------------------------------------------------------------
+
+      # Launcher wrapper: ensures cwd is $SNAP (server serves ./dist relative
+      # to cwd) and that the bundled node + staged ping binary are on PATH.
+      cat > "${INSTALL}/bin/uptime-kuma-wrapper" <<'WRAPPER'
+      #!/bin/sh
+      set -e
+      export PATH="$SNAP/bin:$SNAP/usr/bin:$SNAP/usr/sbin:$PATH"
+      # ca-certificates bundle staged into the snap.
+      export NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-$SNAP/etc/ssl/certs/ca-certificates.crt}"
+      cd "$SNAP"
+      exec "$SNAP/bin/node" "$SNAP/server/server.js" "$@"
+      WRAPPER
+      chmod 755 "${INSTALL}/bin/uptime-kuma-wrapper"
