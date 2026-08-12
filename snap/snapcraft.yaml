@@ -185,6 +185,21 @@ parts:
         find "${INSTALL}/usr/share/doc" -type f -not -name 'copyright' -delete
       fi
       find "${INSTALL}" -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+      # 10. Strip the bundled Node.js binary. The upstream release tarball ships
+      #     it unstripped (with debug_info); stripping the debug + symbol table
+      #     saves ~14 MB and does not affect execution (dynamic symbol table is
+      #     preserved). Verified the stripped binary still runs `node --version`.
+      strip "${INSTALL}/bin/node"
+
+      # 11. Playwright trace-viewer / HTML-report web UI: only consumed by
+      #     `playwright show-trace` / `show-report`, never when running headless
+      #     browser monitors. Not imported at runtime.
+      rm -rf "${NM}/playwright-core/lib/vite"
+
+      # 12. Misc non-runtime assets: an example GIF and npm's hidden lockfile.
+      rm -f "${NM}/node-radius-utils/radius-utils-example.gif" \
+            "${NM}/.package-lock.json"
       # ---------------------------------------------------------------------
 
       # Launcher wrapper: ensures cwd is $SNAP (server serves ./dist relative
