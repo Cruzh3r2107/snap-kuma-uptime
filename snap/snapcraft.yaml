@@ -19,6 +19,10 @@ description: |
   uploads, screenshots and logs persist across snap refreshes.
 
 license: MIT
+website: https://uptime.kuma.pet
+source-code: https://github.com/Cruzh3r2107/snap-kuma-uptime
+issues: https://github.com/Cruzh3r2107/snap-kuma-uptime/issues
+contact: https://github.com/Cruzh3r2107/snap-kuma-uptime/issues
 grade: stable
 confinement: strict
 
