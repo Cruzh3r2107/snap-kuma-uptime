@@ -1,7 +1,7 @@
 name: vsingh-uptime-kuma
 base: core24
 version: '2.5.0'
-title: Uptime Kuma
+title: vsingh-uptime-kuma
 summary: A fancy self-hosted monitoring tool
 description: |
   Uptime Kuma is a self-hosted monitoring tool similar to Uptime Robot.
