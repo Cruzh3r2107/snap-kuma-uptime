@@ -13,7 +13,8 @@ description: |
   By default it stores its data in an embedded SQLite database
   (@louislam/sqlite3 native module) but can also connect to external
   MariaDB/MySQL, PostgreSQL, MSSQL, MongoDB or Redis instances via knex.
-  The web UI and API listen on port 3001 by default.
+  The web UI and API listen on port 3002 in this snap (upstream defaults to
+  3001, which collides with vsingh-sport-kiosk).
 
   The data directory is set to $SNAP_COMMON, so the SQLite database,
   uploads, screenshots and logs persist across snap refreshes.
@@ -39,7 +40,9 @@ apps:
     environment:
       NODE_ENV: production
       DATA_DIR: $SNAP_COMMON/
-      UPTIME_KUMA_PORT: "3001"
+      # 3002, not upstream's 3001: vsingh-sport-kiosk already binds 3001, and
+      # on a host running both this crash-looped on EADDRINUSE.
+      UPTIME_KUMA_PORT: "3002"
 
 parts:
   uptime-kuma:

@@ -14,7 +14,7 @@ here to build.
 - **Confinement:** `strict`
 - **Plugin:** `nil` (custom `override-build`)
 - **Service:** single daemon `vsingh-uptime-kuma` (runs `node server/server.js` via a wrapper)
-- **Default port:** `3001` (overridable with `UPTIME_KUMA_PORT`)
+- **Default port:** `3002` (overridable with `UPTIME_KUMA_PORT`; upstream uses 3001)
 - **Data directory:** `$SNAP_COMMON` (SQLite DB, uploads, screenshots, logs)
 
 ## 1. Prerequisites
@@ -68,14 +68,14 @@ snap services vsingh-uptime-kuma
 journalctl -u snap.vsingh-uptime-kuma.vsingh-uptime-kuma -f
 ```
 
-Open the UI at <http://localhost:3001>.
+Open the UI at <http://localhost:3002>.
 
 ## 4. Interfaces
 
 | Interface         | Auto-connect | Purpose                                                              |
 |-------------------|:------------:|---------------------------------------------------------------------|
 | `network`         | yes          | Outbound connections to every monitored target and notifier         |
-| `network-bind`    | yes          | Bind/listen on port 3001 for the web UI and websocket API           |
+| `network-bind`    | yes          | Bind/listen on port 3002 for the web UI and websocket API           |
 | `network-control` | **no**       | Raw ICMP sockets for `ping`-type monitors (connect only if needed)  |
 
 `network` and `network-bind` auto-connect and cover all core functionality.
@@ -112,7 +112,7 @@ Environment defaults are baked into the app definition:
 
 - `NODE_ENV=production`
 - `DATA_DIR=$SNAP_COMMON/` → data persists at `/var/snap/vsingh-uptime-kuma/common/`
-- `UPTIME_KUMA_PORT=3001`
+- `UPTIME_KUMA_PORT=3002`
 
 To change the port or host at runtime you can override via the app's own env
 vars (`UPTIME_KUMA_PORT`, `UPTIME_KUMA_HOST`). External databases
@@ -142,7 +142,13 @@ snapcraft upload --release=stable ./vsingh-uptime-kuma_2.5.0_*.snap
 
 - **Confinement is strict.** `network` + `network-bind` (both auto-connect)
   cover the core monitoring web app.
-- **Port 3001** is >= 1024 and therefore bindable under strict confinement — no
+- **Port 3002, not upstream's 3001.** `vsingh-sport-kiosk` binds 3001, and on a
+  host running both this daemon crash-looped on `EADDRINUSE` — 32 restarts and
+  climbing, never getting far enough to create `kuma.db`. Note it binds the IPv6
+  wildcard `:::3001`, which still collides with sport-kiosk's `127.0.0.1:3001`.
+  This was invisible while each snap was validated alone in its own container
+  and only appeared once both ran together from a seeded Ubuntu Core image.
+  3002 is >= 1024 and therefore bindable under strict confinement — no
   privileged-port workaround or install hook is required.
 - **Data directory is relocatable** via `DATA_DIR`; set to `$SNAP_COMMON` so all
   state (kuma.db, uploads, screenshots, logs) is written to a snap-writable

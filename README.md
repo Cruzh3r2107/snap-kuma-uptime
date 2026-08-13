@@ -13,7 +13,7 @@ sudo snap install --dangerous ./vsingh-uptime-kuma_2.5.0_amd64.snap
 
 ## Use it
 
-Browse to <http://localhost:3001> and create your admin account on first visit.
+Browse to <http://localhost:3002> and create your admin account on first visit.
 Everything else — monitors, notifications, status pages — is configured from
 the web UI.
 
@@ -54,7 +54,7 @@ configured from the web UI instead of the embedded SQLite.
 
 ## Troubleshooting
 
-The web UI binds all interfaces on port 3001, so it is reachable from your LAN.
+The web UI binds all interfaces on port 3002, so it is reachable from your LAN.
 Put it behind a reverse proxy or a VPN if that is not what you want.
 
 Two features are intentionally unavailable, because both need to run or fetch
