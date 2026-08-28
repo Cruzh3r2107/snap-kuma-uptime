@@ -63,6 +63,20 @@ binaries that strict confinement blocks:
 - real-browser monitors (Playwright + Chromium)
 - Cloudflare Tunnel
 
+## Credits
+
+Uptime Kuma is created and maintained by
+[Louis Lam](https://github.com/louislam/uptime-kuma) and its contributors. All
+of the software this snap runs is theirs; this repository only packages it.
+
+Licensed MIT, the same as upstream.
+
+**This is an unofficial package.** It is not produced or endorsed by the Uptime
+Kuma project. Report packaging problems to
+[this repository's issues](https://github.com/Cruzh3r2107/snap-kuma-uptime/issues),
+not to upstream — and please confirm a bug is not packaging-specific before
+raising it with them.
+
 ---
 
 Build instructions and packaging internals are in
