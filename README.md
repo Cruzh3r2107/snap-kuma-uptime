@@ -76,6 +76,10 @@ taken from `public/icon-512x512.png` in
 [louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) and used under
 that repository's MIT license.
 
+The store screenshot in `snap/gui/` is of this snap running, taken by the
+packager. One event message has been painted out: it contained a host address
+from the packager's own network.
+
 **This is an unofficial package.** It is not produced or endorsed by the Uptime
 Kuma project. Report packaging problems to
 [this repository's issues](https://github.com/Cruzh3r2107/snap-kuma-uptime/issues),
