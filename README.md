@@ -71,6 +71,11 @@ of the software this snap runs is theirs; this repository only packages it.
 
 Licensed MIT, the same as upstream.
 
+The snap icon (`snap/gui/vsingh-uptime-kuma.png`) is Uptime Kuma's own icon,
+taken from `public/icon-512x512.png` in
+[louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) and used under
+that repository's MIT license.
+
 **This is an unofficial package.** It is not produced or endorsed by the Uptime
 Kuma project. Report packaging problems to
 [this repository's issues](https://github.com/Cruzh3r2107/snap-kuma-uptime/issues),

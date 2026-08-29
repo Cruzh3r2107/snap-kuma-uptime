@@ -4,22 +4,27 @@ version: '2.5.0'
 title: vsingh-uptime-kuma
 summary: A fancy self-hosted monitoring tool
 description: |
-  Uptime Kuma is a self-hosted monitoring tool similar to Uptime Robot.
-  It provides a web UI (Vue 3 frontend) served by a Node.js backend
-  (Express + Socket.io) to monitor the uptime of HTTP(s), TCP, ping, DNS,
-  gRPC, MQTT, database and many other endpoints, with notifications,
-  status pages and retention of historical data.
+  Uptime Kuma watches your services and tells you when one goes down. It
+  monitors HTTP(S), TCP ports, ping, DNS, gRPC, MQTT, databases and more,
+  keeps the history, and can publish a public status page.
 
-  By default it stores its data in an embedded SQLite database
-  (@louislam/sqlite3 native module) but can also connect to external
-  MariaDB/MySQL, PostgreSQL, MSSQL, MongoDB or Redis instances via knex.
-  The web UI and API listen on port 3002 in this snap (upstream defaults to
-  3001, which collides with vsingh-sport-kiosk).
+  Notifications go to over ninety services, Telegram, Discord, Slack, email,
+  webhooks and the rest, and fire on state changes rather than on every check.
 
-  The data directory is set to $SNAP_COMMON, so the SQLite database,
-  uploads, screenshots and logs persist across snap refreshes.
+  The web UI listens on port 3002 in this snap, not upstream's 3001, which is
+  a common port for other web services to claim. Data lives in $SNAP_COMMON,
+  so the database, uploads and screenshots survive refreshes and reverts. Back
+  up /var/snap/vsingh-uptime-kuma/common and you have backed up everything.
 
+  Ping and some other monitor types need a manual interface connection after
+  install; see the README in the source repository.
+
+  Built from upstream at tag 2.5.0. This is an unofficial package. Uptime Kuma
+  is created and maintained by Louis Lam and its contributors; this snap only
+  packages their work. Report packaging problems to
+  github.com/Cruzh3r2107/snap-kuma-uptime/issues, not to upstream.
 license: MIT
+icon: snap/gui/vsingh-uptime-kuma.png
 website: https://uptime.kuma.pet
 source-code: https://github.com/Cruzh3r2107/snap-kuma-uptime
 issues: https://github.com/Cruzh3r2107/snap-kuma-uptime/issues
